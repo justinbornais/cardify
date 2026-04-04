@@ -9,7 +9,6 @@ Cardify is a frontend-only Astro + React TypeScript app that generates print-rea
 - Grid modes: fixed grid (rows × columns), fix columns (specify columns; rows auto-computed), fix rows (specify rows; columns auto-computed).
 - Preserves image aspect ratio and fits images inside cells (no unwanted cropping).
 - Configurable gutter, page margin, and optional thin cutting guides for trimming.
-- Duplex mirroring options (long-edge / short-edge) for accurate back alignment.
 - Fully client-side - no server or backend required; exports a print-ready PDF.
 
 ## Quick start
@@ -42,7 +41,6 @@ The production build output is written to `dist/`.
 
 Notes:
 - The "Fixed grid" mode uses the front image aspect (when available) to size cells so tiles stack vertically without extra gaps.
-- Duplex/back alignment uses mirroring appropriate for long-edge or short-edge duplex printing.
 
 ## Project structure
 
@@ -50,7 +48,7 @@ Notes:
 - `src/components/CardifyApp.tsx` - main React UI and client logic.
 - `src/utils/imageProcessor.ts` - image / PDF → normalized PNG conversion.
 - `src/utils/layoutCalculator.ts` - page/grid math and layout helpers.
-- `src/utils/pdfGenerator.ts` - PDF composition and duplex mirroring.
+- `src/utils/pdfGenerator.ts` - PDF composition.
 
 ## Deployment
 

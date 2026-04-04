@@ -8,11 +8,6 @@ export interface GeneratePDFOptions {
   back: ProcessedImage | null;
   /** Draw thin cutting guides between cards */
   showCuttingGuides: boolean;
-  /**
-   * Duplex flip axis.
-   * 'long'  → flip on long edge   (left/right binding) - horizontal mirror
-   * 'short' → flip on short edge  (top/bottom binding) - vertical mirror
-   */
   flipAxis?: 'long' | 'short';
 }
 
@@ -37,11 +32,7 @@ function cardPositions(layout: LayoutResult): Array<{ x: number; y: number }> {
   return positions;
 }
 
-/**
- * Mirror positions for the back page.
- * For flip-on-long-edge (standard duplex), mirror X positions.
- * For flip-on-short-edge, mirror Y positions.
- */
+/** Compute positions for the back page. */
 function mirroredPositions(
   layout: LayoutResult,
   flipAxis: 'long' | 'short'
@@ -142,7 +133,7 @@ function drawCuttingGuides(
  * Generate a print-ready PDF.
  *
  * Page 1: front sides of all cards in a grid.
- * Page 2 (if back provided): back sides mirrored for duplex alignment.
+ * Page 2 (if back provided): back sides are positioned for correct alignment.
  */
 export async function generatePrintPDF(options: GeneratePDFOptions): Promise<Uint8Array> {
   const { layout, front, back, showCuttingGuides, flipAxis = 'long' } = options;

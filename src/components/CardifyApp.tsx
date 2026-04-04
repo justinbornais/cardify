@@ -175,7 +175,7 @@ function PreviewCanvas({ layout, frontImage, backImage }: PreviewCanvasProps) {
       </div>
       {backImage && (
         <div className="text-center">
-          <p className="text-xs font-medium text-slate-500 mb-2">Back (Page 2 - mirrored)</p>
+          <p className="text-xs font-medium text-slate-500 mb-2">Back (Page 2)</p>
           <canvas
             ref={backRef}
             className="rounded-lg border border-slate-200 shadow-sm max-w-full"
@@ -645,11 +645,7 @@ export default function CardifyApp() {
               backImage={backImage}
             />
 
-            {backImage && (
-              <p className="text-xs text-slate-500 text-center mt-3">
-                Back page is mirrored for duplex printing (long-edge).
-              </p>
-            )}
+            {/* Back page information intentionally omitted. */}
           </section>
         )}
 
