@@ -305,7 +305,7 @@ export default function CardifyApp() {
   const [gutter, setGutter] = useState(0);
   const [margin, setMargin] = useState(0.25);
   const [showCuttingGuides, setShowCuttingGuides] = useState(false);
-  const [flipAxis, setFlipAxis] = useState<'long' | 'short'>('long');
+  
 
   // Derived state
   const [layout, setLayout] = useState<LayoutResult | null>(null);
@@ -395,7 +395,6 @@ export default function CardifyApp() {
         front: frontImage,
         back: backImage,
         showCuttingGuides,
-        flipAxis,
       });
       triggerDownload(bytes, 'cardify-print.pdf');
     } catch (e) {
@@ -403,7 +402,7 @@ export default function CardifyApp() {
     } finally {
       setIsGenerating(false);
     }
-  }, [frontImage, backImage, layout, showCuttingGuides, flipAxis]);
+  }, [frontImage, backImage, layout, showCuttingGuides]);
 
   const canGenerate = !!frontImage && !!layout;
 
@@ -626,32 +625,7 @@ export default function CardifyApp() {
                 <p className="text-xs text-slate-400">Prints thin lines between cards</p>
               </div>
             </div>
-
-            {backImage && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Duplex Flip Axis
-                </label>
-                <div className="flex gap-2">
-                  {(['long', 'short'] as const).map((axis) => (
-                    <button
-                      key={axis}
-                      type="button"
-                      onClick={() => setFlipAxis(axis)}
-                      className={`flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-all
-                        ${flipAxis === axis
-                          ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
-                          : 'border-slate-200 text-slate-600 hover:border-indigo-200'}`}
-                    >
-                      {axis === 'long' ? 'Long edge (portrait)' : 'Short edge (landscape)'}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Match your printer's duplex setting for perfect back alignment
-                </p>
-              </div>
-            )}
+            
           </div>
         </section>
 
@@ -673,7 +647,7 @@ export default function CardifyApp() {
 
             {backImage && (
               <p className="text-xs text-slate-500 text-center mt-3">
-                Back page is mirrored for {flipAxis === 'long' ? 'long-edge duplex' : 'short-edge duplex'} printing.
+                Back page is mirrored for duplex printing (long-edge).
               </p>
             )}
           </section>
