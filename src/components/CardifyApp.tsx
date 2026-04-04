@@ -719,6 +719,14 @@ export default function CardifyApp() {
           </button>
         </div>
       </main>
+
+      <footer className="border-t border-slate-200 bg-white/80">
+        <div className="max-w-5xl mx-auto px-4 py-4 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div>© 2026 Justin Bornais</div>
+          <div>Runs entirely in your browser — no files are uploaded or sent to any server.</div>
+        </div>
+      </footer>
+
     </div>
   );
 }
