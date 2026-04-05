@@ -75,5 +75,4 @@ PRs, issues, and suggestions are welcome. Please open an issue for discussion be
 
 ## License
 
-MIT - see the `LICENSE` file if present.
-
+This repository is licensed under the MIT License. See the LICENSE file for more details.
