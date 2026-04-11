@@ -1,11 +1,12 @@
 # Cardify
 
-Cardify is a frontend-only Astro + React TypeScript app that generates print-ready, letter-sized sheets containing repeated cards (business cards, game cards, bookmarks, stickers, etc.) from one or two input images or PDFs.
+Cardify is a frontend-only Astro + React TypeScript app that generates print-ready, letter-sized sheets containing repeated cards (business cards, game cards, bookmarks, stickers, etc.) from one or two input images or PDFs, including images pasted straight from your clipboard.
 
 ## Features
 
 - Accepts PNG / JPEG / WEBP images and single- or two-page PDFs.
 - Front/back support: upload two files or supply a two-page PDF to auto-detect both faces.
+- Clipboard image paste support: paste an image to fill the front face first, then the back face if the front is already set.
 - Grid modes: fixed grid (rows × columns), fix columns (specify columns; rows auto-computed), fix rows (specify rows; columns auto-computed).
 - Preserves image aspect ratio and fits images inside cells (no unwanted cropping).
 - Configurable gutter, page margin, and optional thin cutting guides for trimming.
@@ -34,13 +35,14 @@ The production build output is written to `dist/`.
 ## Usage
 
 1. Open the app in your browser (development server or `npm run preview`).
-2. Upload a front image (required). Optionally upload a back image or provide a two-page PDF.
+2. Upload a front image (required) or paste one from your clipboard. Optionally upload or paste a back image, or provide a two-page PDF.
 3. Choose a layout mode and set rows/columns or fix rows/cols as desired.
 4. Adjust gutter and margin; toggle cutting guides if you want printed trim lines.
 5. Click "Generate & Download PDF" - the app produces a letter-size PDF (72 pt/in) ready for printing.
 
 Notes:
 - The "Fixed grid" mode uses the front image aspect (when available) to size cells so tiles stack vertically without extra gaps.
+- Pasted images fill the front face first, then the back face. If both faces are already filled, additional pasted images are ignored.
 
 ## Project structure
 

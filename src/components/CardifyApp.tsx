@@ -26,6 +26,8 @@ interface UploadedFile {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const ACCEPTED_UPLOAD_TYPES = 'image/png,image/jpeg,image/webp,application/pdf';
+
 function triggerDownload(bytes: Uint8Array, filename: string) {
   const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
@@ -34,6 +36,49 @@ function triggerDownload(bytes: Uint8Array, filename: string) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function createUploadedFile(file: File, images: ProcessedImage[]): UploadedFile {
+  return {
+    file,
+    previewUrl: URL.createObjectURL(file),
+    images,
+  };
+}
+
+function revokeUploadedFile(uploaded: UploadedFile | null) {
+  if (uploaded) {
+    URL.revokeObjectURL(uploaded.previewUrl);
+  }
+}
+
+function clipboardImageFilename(mimeType: string): string {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return `pasted-image-${Date.now()}.jpg`;
+    case 'image/webp':
+      return `pasted-image-${Date.now()}.webp`;
+    case 'image/gif':
+      return `pasted-image-${Date.now()}.gif`;
+    default:
+      return `pasted-image-${Date.now()}.png`;
+  }
+}
+
+function normalizeClipboardImage(file: File): File {
+  if (file.name) return file;
+  return new File([file], clipboardImageFilename(file.type), {
+    type: file.type || 'image/png',
+    lastModified: Date.now(),
+  });
+}
+
+function extractClipboardImage(event: ClipboardEvent): File | null {
+  const item = Array.from(event.clipboardData?.items ?? []).find(
+    (clipboardItem) => clipboardItem.kind === 'file' && clipboardItem.type.startsWith('image/')
+  );
+  const file = item?.getAsFile();
+  return file ? normalizeClipboardImage(file) : null;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -133,7 +178,7 @@ function Dropzone({ label, sublabel, uploaded, onFile, onClear, accept }: Dropzo
       <input
         ref={inputRef}
         type="file"
-        accept={accept ?? 'image/png,image/jpeg,image/webp,application/pdf'}
+        accept={accept ?? ACCEPTED_UPLOAD_TYPES}
         className="hidden"
         onChange={handleChange}
       />
@@ -349,10 +394,18 @@ export default function CardifyApp() {
     setError(null);
     try {
       const images = await processFile(file);
-      const url = URL.createObjectURL(file);
-      setFrontUpload({ file, previewUrl: url, images });
+      const nextUpload = createUploadedFile(file, images);
+      setFrontUpload((currentUpload) => {
+        revokeUploadedFile(currentUpload);
+        return nextUpload;
+      });
       // If PDF had 2 pages, clear any separate back upload since we have what we need
-      if (images.length === 2) setBackUpload(null);
+      if (images.length === 2) {
+        setBackUpload((currentUpload) => {
+          revokeUploadedFile(currentUpload);
+          return null;
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to process file');
     } finally {
@@ -365,8 +418,11 @@ export default function CardifyApp() {
     setError(null);
     try {
       const images = await processFile(file);
-      const url = URL.createObjectURL(file);
-      setBackUpload({ file, previewUrl: url, images });
+      const nextUpload = createUploadedFile(file, images);
+      setBackUpload((currentUpload) => {
+        revokeUploadedFile(currentUpload);
+        return nextUpload;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to process file');
     } finally {
@@ -375,14 +431,41 @@ export default function CardifyApp() {
   }, []);
 
   const clearFront = useCallback(() => {
-    if (frontUpload) URL.revokeObjectURL(frontUpload.previewUrl);
-    setFrontUpload(null);
-  }, [frontUpload]);
+    setFrontUpload((currentUpload) => {
+      revokeUploadedFile(currentUpload);
+      return null;
+    });
+  }, []);
 
   const clearBack = useCallback(() => {
-    if (backUpload) URL.revokeObjectURL(backUpload.previewUrl);
-    setBackUpload(null);
-  }, [backUpload]);
+    setBackUpload((currentUpload) => {
+      revokeUploadedFile(currentUpload);
+      return null;
+    });
+  }, []);
+
+  const handlePaste = useCallback(async (file: File) => {
+    if (!frontImage) {
+      await handleFrontFile(file);
+      return;
+    }
+    if (!backImage) {
+      await handleBackFile(file);
+    }
+  }, [backImage, frontImage, handleBackFile, handleFrontFile]);
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (isProcessing || (frontImage && backImage)) return;
+      const imageFile = extractClipboardImage(event);
+      if (!imageFile) return;
+      event.preventDefault();
+      void handlePaste(imageFile);
+    };
+
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [backImage, frontImage, handlePaste, isProcessing]);
 
   // Generate PDF
   const handleGenerate = useCallback(async () => {
@@ -430,8 +513,8 @@ export default function CardifyApp() {
         <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <SectionTitle number={1} title="Upload Images" />
           <p className="text-sm text-slate-500 mb-4">
-            Upload a front image (required). Optionally upload a back image for two-sided printing.
-            A two-page PDF automatically provides both faces.
+            Upload a front image (required) or paste one from your clipboard. Optionally upload or
+            paste a back image for two-sided printing. A two-page PDF automatically provides both faces.
           </p>
 
           <div className="flex gap-4 flex-col sm:flex-row">
@@ -465,6 +548,11 @@ export default function CardifyApp() {
               <Spinner /> Processing file...
             </div>
           )}
+
+          <p className="mt-3 text-xs text-slate-500">
+            Tip: paste an image anywhere on the page to fill the front face first, then the back face.
+            If both faces are already filled, pasted images are ignored.
+          </p>
 
           {/* Two-page PDF note */}
           {frontUpload?.images.length === 2 && (
@@ -690,12 +778,12 @@ export default function CardifyApp() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white/80">
-        <div className="max-w-5xl mx-auto px-4 py-4 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>© 2026 Justin Bornais</div>
-          <div>Runs entirely in your browser - no files are uploaded or sent to any server.</div>
-        </div>
-      </footer>
+        <footer className="border-t border-slate-200 bg-white/80">
+          <div className="max-w-5xl mx-auto px-4 py-4 text-sm text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div>© 2026 Justin Bornais</div>
+            <div>Runs entirely in your browser - uploaded and pasted images never leave your device.</div>
+          </div>
+        </footer>
 
     </div>
   );
