@@ -52,6 +52,25 @@ function revokeUploadedFile(uploaded: UploadedFile | null) {
   }
 }
 
+function useUploadPreviewCleanupOnUnmount(
+  frontUpload: UploadedFile | null,
+  backUpload: UploadedFile | null,
+) {
+  const frontUploadRef = useRef(frontUpload);
+  const backUploadRef = useRef(backUpload);
+
+  useEffect(() => {
+    frontUploadRef.current = frontUpload;
+    backUploadRef.current = backUpload;
+  }, [frontUpload, backUpload]);
+
+  useEffect(() => {
+    return () => {
+      revokeUploadedFile(frontUploadRef.current);
+      revokeUploadedFile(backUploadRef.current);
+    };
+  }, []);
+}
 function clipboardImageFilename(mimeType: string): string {
   switch (mimeType) {
     case 'image/jpeg':
