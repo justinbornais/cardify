@@ -457,11 +457,25 @@ export default function CardifyApp() {
   }, []);
 
   const clearBack = useCallback(() => {
+    if (!backUpload && frontUpload && frontUpload.images.length > 1) {
+      setFrontUpload((currentUpload) => {
+        if (!currentUpload || currentUpload.images.length <= 1) {
+          return currentUpload;
+        }
+
+        return {
+          ...currentUpload,
+          images: currentUpload.images.slice(0, 1),
+        };
+      });
+      return;
+    }
+
     setBackUpload((currentUpload) => {
       revokeUploadedFile(currentUpload);
       return null;
     });
-  }, []);
+  }, [backUpload, frontUpload]);
 
   const handlePaste = useCallback(async (file: File) => {
     if (!frontImage) {
