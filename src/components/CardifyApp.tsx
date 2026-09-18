@@ -218,12 +218,12 @@ function PreviewCanvas({ layout, frontImage, backImage }: PreviewCanvasProps) {
   const backRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    drawPreview(frontRef.current!, layout, frontImage, false);
+    return drawPreview(frontRef.current!, layout, frontImage, false);
   }, [layout, frontImage]);
 
   useEffect(() => {
     if (backImage) {
-      drawPreview(backRef.current!, layout, backImage, true);
+      return drawPreview(backRef.current!, layout, backImage, true);
     }
   }, [layout, backImage]);
 
@@ -256,8 +256,11 @@ function drawPreview(
   layout: LayoutResult,
   image: ProcessedImage | null,
   mirrorX: boolean
-) {
+): (() => void) | undefined {
   if (!canvas) return;
+
+  let cancelled = false;
+  let imageUrl: string | null = null;
 
   const PREVIEW_HEIGHT = 280;
   const aspect = layout.pageWidthPt / layout.pageHeightPt;
@@ -303,9 +306,19 @@ function drawPreview(
     }
   }
 
+  const drawPageBorder = () => {
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, pw, ph);
+  };
+
   if (image) {
     const img = new Image();
     img.onload = () => {
+      // A newer layout/image may have started rendering before this image
+      // finished loading. Never let a stale render paint over the current one.
+      if (cancelled) return;
+
       for (const { cx, cy, cw, ch } of positions) {
         ctx.save();
         ctx.beginPath();
@@ -331,10 +344,17 @@ function drawPreview(
         ctx.lineWidth = 0.5;
         ctx.strokeRect(cx, cy, cw, ch);
       }
+
+      drawPageBorder();
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+        imageUrl = null;
+      }
     };
-    img.src = URL.createObjectURL(
+    imageUrl = URL.createObjectURL(
       new Blob([image.pngBytes.buffer as ArrayBuffer], { type: 'image/png' })
     );
+    img.src = imageUrl;
   } else {
     for (const { cx, cy, cw, ch } of positions) {
       ctx.fillStyle = '#e2e8f0';
@@ -343,12 +363,18 @@ function drawPreview(
       ctx.lineWidth = 0.5;
       ctx.strokeRect(cx, cy, cw, ch);
     }
+    drawPageBorder();
   }
 
-  // Page border
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0, 0, pw, ph);
+  return () => {
+    cancelled = true;
+    // The cleanup runs before the next preview render. Revoke the old blob
+    // URL so rapid uploads do not leave pending image resources behind.
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+      imageUrl = null;
+    }
+  };
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
